@@ -34,6 +34,19 @@ v2.0). With anemoi-models 0.9.3 the supported route appears to be the
 runner's `patch_metadata` on `attention_implementation` instead — to be
 verified. Possible PR: fix the notebook, document the modern override.
 
+## 2026-08-30 — Open data retention is undocumented (and bites at t-6h first)
+
+Fetching initial conditions for 2026-08-26 06 UTC (4 days back) failed
+with `requests.exceptions.HTTPError: 404 Client Error: Not Found for
+url: https://data.ecmwf.int/forecasts/20260826/00z/ifs/0p25/oper/20260826000000-0h-oper-fc.index`.
+Note the cycle: the 06z data may still have existed, but AIFS needs the
+t-6h state too, so the 00z file rolling out of retention ends the run.
+The ecmwf-opendata README documents no retention period at all; in
+practice it is a ~4-day rolling window, effectively 6 hours shorter for
+AIFS initialisation. Possible PR: one sentence on retention in the
+ecmwf-opendata README. Error-growth experiments beyond ~3.75 days need
+archived initial conditions (MARS) instead.
+
 ## 2026-08-30 — The model card's own CLI path is broken with its own pins
 
 `anemoi-inference run` with `input: opendata` (the setup in the model
