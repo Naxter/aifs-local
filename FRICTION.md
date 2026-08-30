@@ -79,8 +79,10 @@ fails with `TypeError: RawOutput.__init__() missing 1 required positional
 argument: 'dir'`. Cause: `RawOutput` is decorated with
 `@main_argument("path")` but its required constructor argument is named
 `dir`, so the shorthand scalar never reaches it. Workaround: spell it as
-`raw: {dir: data/raw}`. One-line fix upstream
-(`@main_argument("dir")` in `outputs/raw.py`) — PR candidate.
+`raw: {dir: data/raw}`. Update, same day: current upstream `main` already
+has `@main_argument("dir")` — the bug only affects released versions up
+to (at least) 0.8.3, which is what the model card pins. No PR needed;
+the workaround stays relevant for anyone on the pinned stack.
 
 ## 2026-08-30 — The official example input plugin's test cannot pass
 
