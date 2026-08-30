@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Model checkpoints (downloaded from Hugging Face, ~1 GB)
+*.ckpt
+
+# Downloaded weather data and forecast output
+data/
+outputs/
+*.grib
+*.grib2
+*.index

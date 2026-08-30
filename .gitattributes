@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.ckpt binary
+*.grib binary
+*.grib2 binary
+*.png binary

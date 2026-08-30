@@ -1,0 +1,14 @@
+# Pinned to match ecmwf/aifs-single-2.0 (pyproject.toml in the model repo).
+# Python 3.12, Linux x86_64. flash-attn is installed separately, see README.
+torch==2.7.0
+torch-geometric==2.6.1
+anemoi-inference[huggingface]==0.8.3
+anemoi-models==0.9.3
+anemoi-graphs==0.6.4
+anemoi-transform==0.1.16.post2
+anemoi-utils==0.4.35.post3
+anemoi-plugins-ecmwf-inference[opendata]==0.2.1
+ecmwf-opendata==0.3.29
+earthkit-data<1.0.0
+earthkit-regrid==0.5.1
+earthkit-plots<1.0.0
