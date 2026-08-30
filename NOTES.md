@@ -152,6 +152,28 @@ memory requirement — reports of SDPA needing far more memory predate
 PyTorch's fused SDPA kernels and were measured on older checkpoints.
 Field values agree to within GPU non-determinism.
 
+## Precipitation accounting
+
+The model's tp/cp/sf outputs are per-6-hour-step, not accumulated from
+forecast start — verified empirically: the global mean of tp sits near
+0.75 mm per step at every lead (~3 mm/day, the textbook global
+precipitation rate), instead of growing with lead time. GRIB convention
+however is accumulation from forecast start, which is exactly what the
+`accumulate_from_start_of_forecast` post-processor in the model card's
+inference.yaml exists to produce. Working with raw states means summing
+steps yourself (`plot_forecast.py --sum-run`).
+
+## The lagged ensemble lesson
+
+Averaging forecasts from successive initialisations (a lagged ensemble)
+looked like free skill, but with members of very unequal age the
+equal-weight mean beat the +48 h and +72 h members while losing to the
+freshest one (z500 RMSE: mean 64.9 vs members 41.1/69.8/122.7). The
+classic result — the ensemble mean beating every member — needs members
+of comparable skill or lead-dependent weights. Spread grew with the
+error (0.22 K mean 2t spread vs 0.74-1.19 K member RMSEs), which is the
+signal real ensemble systems calibrate against.
+
 ## Where image/tensor intuitions break
 
 Running list:

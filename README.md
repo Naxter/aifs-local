@@ -32,6 +32,21 @@ latitudes, longitudes per 6 h step). Useful flags on `run_forecast.py`:
 
 On an RTX 3060 (12 GB) a 6 h step takes ~13 s at ~6 GB peak GPU memory.
 
+## Toolbox
+
+| script | purpose |
+|---|---|
+| `initial_conditions.py` | download and prepare an input state from open data |
+| `run_forecast.py` | run the model (`--raw-dir` also writes replayable states) |
+| `plot_forecast.py` | map any field (`--sum-run` for accumulated precipitation) |
+| `verify_forecast.py` | score one forecast against the analysis |
+| `plot_error_growth.py` | RMSE vs lead time across initialisations |
+| `compare_models.py` | local AIFS vs operational IFS and AIFS |
+| `meteogram.py` | one location's forecast as time-series panels |
+| `animate_forecast.py` | a whole run as a GIF |
+| `lagged_ensemble.py` | ensemble statistics from successive runs |
+| `daily_verification.py` | scheduler-friendly daily run + scoring into scores.csv |
+
 ## Verification
 
 `verify_forecast.py` scores one forecast against the analysis at its
@@ -76,6 +91,13 @@ temperature, initialised 2026-08-30 06 UTC, one frame per 12 h:
 
 ![10-day 2t animation](docs/2t-10day.gif)
 
+## Point forecast
+
+`meteogram.py` extracts the nearest grid point and draws the classic
+meteogram panels (default location: Bonn):
+
+![Meteogram](docs/meteogram.png)
+
 ## Replay plugin
 
 [plugin/](plugin/) contains `anemoi-inference-input-raw-plugin`, an
@@ -88,6 +110,24 @@ pip install -e plugin
 python run_forecast.py --lead-time 12 --raw-dir data/raw
 anemoi-inference run configs/replay-from-raw.yaml date=2026-08-30T12:00:00
 ```
+
+`configs/replay-to-grib.yaml` is the same replay writing standard GRIB
+(reduced Gaussian grid preserved, `class: ai` encoding as in the model
+card), so the output opens in any meteorology tool.
+
+## Standing verification
+
+`daily_verification.py` is built for a scheduler: it runs the latest
+cycle's 24 h forecast and appends scores for every matured forecast to
+`scores.csv`. A few weeks of rows turn single-case verification into
+averaged skill estimates.
+
+## Beyond four days (experimental)
+
+`configs/era5-hindcast.yaml` sketches historical case studies — ERA5
+initial conditions via the CDS API, so any past storm can be
+re-forecast. Untested until a (free) CDS API key is configured; see the
+comments in the config.
 
 See NOTES.md for how the pieces fit together and FRICTION.md for the
 sharp edges hit along the way.
