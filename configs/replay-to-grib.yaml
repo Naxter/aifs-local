@@ -1,0 +1,43 @@
+# Replay from stored raw states, writing standard GRIB output — the
+# format the rest of the meteorology toolchain (Metview, wgrib2,
+# earthkit) reads. Encoding block as in the model repo's inference.yaml.
+#
+#   python run_forecast.py --lead-time 12 --raw-dir data/raw
+#   anemoi-inference run configs/replay-to-grib.yaml date=2026-08-30T12:00:00
+
+checkpoint:
+  huggingface: ecmwf/aifs-single-2.0
+
+lead_time: 6h
+
+input:
+  raw:
+    path: data/raw
+
+allow_nans: true
+
+post_processors:
+  - backward-transform-filter: cos_sin_mean_wave_direction
+  - accumulate_from_start_of_forecast
+
+use_grib_paramid: true
+typed_variables:
+  mwd:
+    mars:
+      param: mwd
+      stream: wave
+      levtype: sfc
+  snowc:
+    mars:
+      param: fscov
+      stream: oper
+      levtype: sfc
+
+output:
+  grib:
+    path: outputs/replay.grib
+    encoding:
+      class: ai
+      type: fc
+      model: aifs-single
+      generatingProcessIdentifier: 5
