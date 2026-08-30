@@ -60,6 +60,9 @@ def main():
                         help="sdpa switches to PyTorch attention (no flash-attn needed, works on CPU)")
     parser.add_argument("--data-dir", default="data", type=Path)
     parser.add_argument("--out-dir", default="outputs", type=Path)
+    parser.add_argument("--raw-dir", type=Path,
+                        help="also write states in the raw-output format anemoi-inference "
+                        "can read back (see plugin/)")
     args = parser.parse_args()
 
     # Both variables must be set before the CUDA context is created.
@@ -102,11 +105,32 @@ def main():
         patch_metadata=patch,
     )
 
+    def write_raw(date, fields, latitudes, longitudes):
+        args.raw_dir.mkdir(parents=True, exist_ok=True)
+        restate = {f"field_{name}": values for name, values in fields.items()}
+        restate["date"] = np.array(str(date), dtype=str)
+        np.savez_compressed(args.raw_dir / f"{date:%Y%m%d%H%M%S}.npz",
+                            latitudes=latitudes, longitudes=longitudes, **restate)
+
     last = time.perf_counter()
     for state in runner.run(input_state=input_state, lead_time=args.lead_time):
         step_hours = int((state["date"] - input_state["date"]).total_seconds() // 3600)
         print_state(state)
         path = save_state(state, args.out_dir, step_hours)
+        if args.raw_dir:
+            if step_hours == 6:
+                # The grid only becomes known with the first output state;
+                # write the two input dates then, for replay via the raw input.
+                for i, lag in enumerate((-6, 0)):
+                    write_raw(input_state["date"] + datetime.timedelta(hours=lag),
+                              {k: v[i] for k, v in input_state["fields"].items()},
+                              state["latitudes"], state["longitudes"])
+            # Forecast states carry no static fields (lsm, orography, ...),
+            # but a replay needs them at its start date — merge them in.
+            constants = {k: v[1] for k, v in input_state["fields"].items()
+                         if k not in state["fields"]}
+            write_raw(state["date"], {**constants, **state["fields"]},
+                      state["latitudes"], state["longitudes"])
         now = time.perf_counter()
         print(f"+{step_hours}h took {now - last:.1f} s -> {path}")
         last = now

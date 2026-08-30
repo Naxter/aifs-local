@@ -1,0 +1,21 @@
+# Replay a forecast from stored raw states via the raw input plugin
+# (see plugin/). The states are already in model variable space, so no
+# pre/post processors are needed. Produce the files first, e.g.:
+#
+#   python run_forecast.py --lead-time 12 --raw-dir data/raw
+#   anemoi-inference run configs/replay-from-raw.yaml date=2026-08-30T12:00:00
+#
+# where date is a state for which the file and its t-6h neighbour exist.
+
+checkpoint:
+  huggingface: ecmwf/aifs-single-2.0
+
+lead_time: 6h
+
+input:
+  raw:
+    path: data/raw
+
+allow_nans: true
+
+output: printer
