@@ -1,0 +1,2 @@
+[anemoi.inference.inputs]
+raw = anemoi_inference_input_raw_plugin.raw:RawInputPlugin
