@@ -32,6 +32,35 @@ latitudes, longitudes per 6 h step). Useful flags on `run_forecast.py`:
 
 On an RTX 3060 (12 GB) a 6 h step takes ~13 s at ~6 GB peak GPU memory.
 
+## Verification
+
+`verify_forecast.py` scores a forecast against the analysis at its valid
+time (open data, step 0 of that cycle). A 24 h forecast initialised
+2026-08-29 06 UTC, verified globally on N320:
+
+| field | bias | MAE | RMSE |
+|---|---|---|---|
+| 2t (K) | +0.04 | 0.49 | 0.74 |
+| t_850 (K) | -0.04 | 0.47 | 0.69 |
+| msl (Pa) | -5.2 | 40.1 | 59.0 |
+| z_500 (m²/s²) | -5.3 | 29.5 | 41.1 |
+
+Scores are slightly flattered by the shared initialisation and the
+double regridding; the magnitudes are the point.
+
+## Replay plugin
+
+[plugin/](plugin/) contains `anemoi-inference-input-raw-plugin`, an
+input plugin that reads the .npz states written by anemoi-inference's
+built-in `raw` output (or by `run_forecast.py --raw-dir`), so forecasts
+can be replayed or continued without re-fetching source data:
+
+```sh
+pip install -e plugin
+python run_forecast.py --lead-time 12 --raw-dir data/raw
+anemoi-inference run configs/replay-from-raw.yaml date=2026-08-30T12:00:00
+```
+
 See NOTES.md for how the pieces fit together and FRICTION.md for the
 sharp edges hit along the way.
 

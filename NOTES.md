@@ -111,10 +111,24 @@ setup included), subsequent steps ~13 s, peak GPU memory 6.2 GB. A
 
 ## anemoi framework vs. ECMWF plumbing
 
-*To fill in as the pieces are used.* First data point: the model repo's
-`inference.yaml` uses `input: opendata`, which is provided not by
-anemoi-inference itself but by the separate `anemoi-plugins-ecmwf-inference`
-package — the framework/plumbing split is visible right in the packaging.
+The split is visible in the packaging: anemoi-inference provides the
+runner, the registries and generic inputs/outputs (grib, netcdf, raw,
+printer); everything ECMWF-specific — the `opendata` input, multio
+outputs, polytope — lives in the separate
+`anemoi-plugins-ecmwf-inference` package and hooks in via plain
+setuptools entry points (groups like `anemoi.inference.inputs`).
+
+Writing a third-party plugin is genuinely one entry point plus one
+class: plugin/ in this repo implements a `raw` input (reads the .npz
+states the built-in raw output writes) in ~100 lines by subclassing
+`EkdInput`, which does the heavy lifting of assembling the two-date
+input state. Replaying a stored forecast through the standard CLI
+reproduced the original run to within GPU non-determinism.
+
+The replay also makes the variable ledger tangible: forecast states
+carry only prognostics + diagnostics, so a replay input additionally
+needs the static fields (lsm, orography, ...) merged into its start
+state — the runner requests constants from the input separately.
 
 ## Attention backends
 
