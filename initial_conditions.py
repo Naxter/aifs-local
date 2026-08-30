@@ -34,6 +34,17 @@ LSM_URL = "https://huggingface.co/ecmwf/aifs-single-2.0/resolve/main/lsm.grib"
 STANDARD_GRAVITY = 9.80665
 
 
+def regrid_to_n320(values):
+    """Interpolate a 0.25 deg lat/lon field to the model's N320 grid.
+
+    Open data longitudes run -180..180; the regrid matrices expect
+    0..360, hence the half-width roll.
+    """
+    assert values.shape == (721, 1440), f"unexpected grid {values.shape}"
+    values = np.roll(values, -values.shape[1] // 2, axis=1)
+    return ekr.interpolate(values, {"grid": (0.25, 0.25)}, {"grid": "N320"})
+
+
 def get_open_data(date, source, param, levelist=(), **kwargs):
     """Fetch one parameter set for t-6h and t0 and regrid to N320."""
     fields = defaultdict(list)
@@ -43,12 +54,7 @@ def get_open_data(date, source, param, levelist=(), **kwargs):
             source=source, **kwargs,
         )
         for f in data:
-            # Open data longitudes run -180..180; the regrid matrices
-            # expect 0..360, hence the half-width roll.
-            values = f.to_numpy()
-            assert values.shape == (721, 1440), f"unexpected grid {values.shape}"
-            values = np.roll(values, -values.shape[1] // 2, axis=1)
-            values = ekr.interpolate(values, {"grid": (0.25, 0.25)}, {"grid": "N320"})
+            values = regrid_to_n320(f.to_numpy())
             name = f"{f.metadata('param')}_{f.metadata('levelist')}" if levelist else f.metadata("param")
             fields[name].append(values)
 
