@@ -12,3 +12,4 @@ outputs/
 *.grib
 *.grib2
 *.index
+*.egg-info/
