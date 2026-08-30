@@ -34,6 +34,52 @@ v2.0). With anemoi-models 0.9.3 the supported route appears to be the
 runner's `patch_metadata` on `attention_implementation` instead — to be
 verified. Possible PR: fix the notebook, document the modern override.
 
+## 2026-08-30 — The model card's own CLI path is broken with its own pins
+
+`anemoi-inference run` with `input: opendata` (the setup in the model
+repo's `inference.yaml`) crashes on construction with `KeyError: 'z'`
+in `anemoi/transform/filters/orog_to_z.py`. Root cause:
+`InferenceOrography` (anemoi-plugins-ecmwf-inference 0.2.1,
+`opendata/geopotential_height.py`) overrides
+`optional_inputs = {"orography": "gh", "geopotential": "z"}`, but the
+parent `Orography` filter in the pinned anemoi-transform 0.1.16.post2
+has `optional_inputs = {"orog": "orog", "z": "z"}` and its
+`forward_select`/`backward_select` read `self.orog`/`self.z` — attribute
+names from a different anemoi-transform version. The subclass also
+rejects `orog`/`z` as explicit kwargs ("Unknown input(s)"), so there is
+no config-level workaround. The two packages pinned together by the
+model card's `pyproject.toml` cannot run the `input: opendata` path; the
+example notebook avoids it by converting gh to z manually in Python.
+Worked around by feeding the model from stored raw states instead.
+Issue candidate with exact versions and traceback.
+
+## 2026-08-30 — Built-in raw output: shorthand config always crashes
+
+With anemoi-inference 0.8.3, the natural config
+
+```yaml
+output:
+  raw: data/raw
+```
+
+fails with `TypeError: RawOutput.__init__() missing 1 required positional
+argument: 'dir'`. Cause: `RawOutput` is decorated with
+`@main_argument("path")` but its required constructor argument is named
+`dir`, so the shorthand scalar never reaches it. Workaround: spell it as
+`raw: {dir: data/raw}`. One-line fix upstream
+(`@main_argument("dir")` in `outputs/raw.py`) — PR candidate.
+
+## 2026-08-30 — The official example input plugin's test cannot pass
+
+`plugins/inference/inputs/example/tests/test_plugin.py` in
+ecmwf/anemoi-plugins calls `create_input(TestingContext(), "example")`.
+Two independent problems: `TestingContext` is an empty class while
+`Input.__init__` reads `context.checkpoint` (AttributeError), and
+`ExamplePlugin` implements none of `Input`'s abstract methods, so it
+cannot be instantiated at all. Hit while modelling my own plugin test on
+it; had to stub a checkpoint with a `default_namer()` and implement the
+abstract methods to get a passing test. PR candidate.
+
 ## 2026-08-30 — earthkit-plots papercuts (v0.6.1)
 
 - The deprecation warning in `quickmap` says "will be removed in
