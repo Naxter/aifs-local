@@ -6,6 +6,12 @@ Run ECMWF's AIFS Single 2.0 machine-learning weather model on a consumer
 GPU, end to end: initial conditions from ECMWF open data, forecast with
 anemoi-inference, plots with earthkit.
 
+The point is not the forecast — those can be downloaded ready-made. The
+point is understanding the model and the data underneath it, and feeding
+what breaks back upstream: NOTES.md explains the weather data model for
+people coming from other corners of machine learning, FRICTION.md logs
+every place where documentation and reality disagreed.
+
 ![2m temperature over Europe](docs/example-2t-europe.png)
 
 ## Usage
@@ -46,6 +52,8 @@ On an RTX 3060 (12 GB) a 6 h step takes ~13 s at ~6 GB peak GPU memory.
 | `animate_forecast.py` | a whole run as a GIF |
 | `lagged_ensemble.py` | ensemble statistics from successive runs |
 | `daily_verification.py` | scheduler-friendly daily run + scoring into scores.csv |
+| `states.py` | finding forecast states by run or by valid time |
+| `plotstyle.py` | shared figure styling |
 
 ## Verification
 
@@ -63,10 +71,13 @@ N320 (RMSE):
 
 ![Error growth](docs/error-growth.png)
 
-Rollout error compounding, measured. Scores are slightly flattered by
-the shared initialisation and the double regridding; the shape is the
-point. +96 h was out of reach: open data retains only about four days
-(see FRICTION.md).
+**One case, not a skill assessment.** Three forecasts verified at a
+single valid time show the shape of error growth; averaged skill needs
+weeks of samples, which is what `daily_verification.py` accumulates in
+`scores.csv`. Two further caveats: forecast and analysis travel the same
+0.25° → N320 regridding path, so that error partly cancels and the
+numbers come out slightly optimistic; and +96 h was out of reach because
+open data retains only about four days (see FRICTION.md).
 
 ## AIFS vs. IFS
 
@@ -76,13 +87,16 @@ analysis:
 
 ![Model comparison](docs/model-comparison.png)
 
-Two things to see. The local AIFS line hides almost perfectly under
-ECMWF's operational AIFS — the open-data initialisation reproduces the
-official product's skill, which validates this whole pipeline. And the
-ML model beats the physics model on t850, msl and z500 at every lead —
-even though the verifying analysis is produced by the IFS system itself
-— while IFS keeps the edge on 2 m temperature, where its land-surface
-scheme earns its keep.
+The result worth having is the first one: the local AIFS line hides
+almost perfectly under ECMWF's operational AIFS. Reproducing the
+official product from open-data initial conditions is what validates
+this pipeline, and it holds regardless of sample size.
+
+In this one case AIFS also comes out ahead of IFS on t850, msl and z500,
+while IFS keeps 2 m temperature. That is an observation, not a finding:
+one valid time cannot rank two forecasting systems, and the verifying
+analysis is IFS's own product. ECMWF's published scorecards are the
+place to look for the real comparison.
 
 ## Ten days of weather
 
@@ -119,8 +133,17 @@ card), so the output opens in any meteorology tool.
 
 `daily_verification.py` is built for a scheduler: it runs the latest
 cycle's 24 h forecast and appends scores for every matured forecast to
-`scores.csv`. A few weeks of rows turn single-case verification into
-averaged skill estimates.
+`scores.csv` (in the model's own units, so msl is in Pa there). Re-runs
+skip rows that already exist. A few weeks of rows turn the single-case
+numbers above into averaged skill estimates.
+
+```sh
+# crontab -e — daily at 16:00 local time
+0 16 * * * cd /path/to/aifs-local && .venv/bin/python daily_verification.py >> daily.log 2>&1
+```
+
+On Windows with WSL, point a Task Scheduler entry at a one-line `.cmd`
+that calls `wsl -d Ubuntu-24.04 -e bash -lc "<the command above>"`.
 
 ## Beyond four days (experimental)
 
