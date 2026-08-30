@@ -53,6 +53,13 @@ the shared initialisation and the double regridding; the shape is the
 point. +96 h was out of reach: open data retains only about four days
 (see FRICTION.md).
 
+## Ten days of weather
+
+`animate_forecast.py` renders a whole run as a GIF — here 2 m
+temperature, initialised 2026-08-30 06 UTC, one frame per 12 h:
+
+![10-day 2t animation](docs/2t-10day.gif)
+
 ## Replay plugin
 
 [plugin/](plugin/) contains `anemoi-inference-input-raw-plugin`, an
