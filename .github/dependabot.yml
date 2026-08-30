@@ -1,0 +1,10 @@
+# Only GitHub Actions are kept current automatically. Python pins are
+# intentional: they must match the versions the aifs-single-2.0
+# checkpoint was validated against (see requirements.txt), and the
+# checkpoint rejects newer anemoi versions at load time.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
