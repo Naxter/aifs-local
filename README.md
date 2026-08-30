@@ -34,19 +34,24 @@ On an RTX 3060 (12 GB) a 6 h step takes ~13 s at ~6 GB peak GPU memory.
 
 ## Verification
 
-`verify_forecast.py` scores a forecast against the analysis at its valid
-time (open data, step 0 of that cycle). A 24 h forecast initialised
-2026-08-29 06 UTC, verified globally on N320:
+`verify_forecast.py` scores one forecast against the analysis at its
+valid time (open data, step 0 of that cycle; bias, MAE, RMSE);
+`plot_error_growth.py` does it across initialisations. Hindcasts
+initialised 1–3 days before 2026-08-30 06 UTC, verified globally on
+N320 (RMSE):
 
-| field | bias | MAE | RMSE |
-|---|---|---|---|
-| 2t (K) | +0.04 | 0.49 | 0.74 |
-| t_850 (K) | -0.04 | 0.47 | 0.69 |
-| msl (Pa) | -5.2 | 40.1 | 59.0 |
-| z_500 (m²/s²) | -5.3 | 29.5 | 41.1 |
+| lead | 2t (K) | t_850 (K) | msl (hPa) | z_500 (m²/s²) |
+|---|---|---|---|---|
+| +24 h | 0.74 | 0.69 | 0.59 | 41 |
+| +48 h | 0.92 | 0.85 | 0.81 | 70 |
+| +72 h | 1.19 | 1.05 | 1.25 | 123 |
 
-Scores are slightly flattered by the shared initialisation and the
-double regridding; the magnitudes are the point.
+![Error growth](docs/error-growth.png)
+
+Rollout error compounding, measured. Scores are slightly flattered by
+the shared initialisation and the double regridding; the shape is the
+point. +96 h was out of reach: open data retains only about four days
+(see FRICTION.md).
 
 ## Replay plugin
 
