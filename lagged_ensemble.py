@@ -13,7 +13,7 @@ from pathlib import Path
 import earthkit.data as ekd
 import numpy as np
 
-from plot_error_growth import collect_forecasts
+from states import collect_forecasts
 from verify_forecast import fetch_truth
 
 

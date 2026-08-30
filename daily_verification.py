@@ -10,11 +10,13 @@ Meant for a scheduler (cron, Windows Task Scheduler). Each run:
 
 scores.csv is tracked in git — commit it whenever you like; a few weeks
 of rows turn single-case verification into averaged scores.
+
+Scores are written in the model's own units (K, Pa, m^2/s^2), not the
+display units of the figures — msl therefore appears here in Pa.
 """
 
 import csv
 import datetime
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +25,7 @@ import earthkit.data as ekd
 import numpy as np
 from ecmwf.opendata import Client
 
+from states import parse
 from verify_forecast import fetch_truth
 
 PARAMS = ["2t", "t_850", "msl", "z_500"]
@@ -62,8 +65,7 @@ def main():
     done = existing_rows()
     now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     for path in sorted(out_dir.glob("forecast_*_+024h.npz")):
-        valid = datetime.datetime.strptime(
-            re.match(r"forecast_(\d{8}T\d{2})", path.name).group(1), "%Y%m%dT%H")
+        valid, _ = parse(path)
         if valid > now:
             continue
         missing = [p for p in PARAMS if (valid.isoformat(), "24", p) not in done]
@@ -81,7 +83,9 @@ def main():
                     bias=f"{np.nanmean(diff):.4f}", mae=f"{np.nanmean(np.abs(diff)):.4f}",
                     rmse=f"{np.sqrt(np.nanmean(diff ** 2)):.4f}",
                 ))
-        except Exception as error:
+        except OSError as error:
+            # Analysis not published yet, or the download failed: try again
+            # on the next run. Anything else is a real bug and must surface.
             print(f"skipping {path.name}: {error}")
             continue
         append_rows(rows)

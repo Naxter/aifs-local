@@ -7,7 +7,6 @@ across frames; for temperature it diverges around 0 °C.
 
 import argparse
 import datetime
-import re
 from pathlib import Path
 
 import matplotlib
@@ -19,17 +18,7 @@ import matplotlib.tri as tri
 import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-
-def collect_run(out_dir, init):
-    """Map lead hours -> file for all states initialised at `init`."""
-    frames = {}
-    for path in out_dir.glob("forecast_*_+*h.npz"):
-        match = re.match(r"forecast_(\d{8}T\d{2})_\+(\d+)h", path.name)
-        valid = datetime.datetime.strptime(match.group(1), "%Y%m%dT%H")
-        lead = int(match.group(2))
-        if valid - datetime.timedelta(hours=lead) == init:
-            frames[lead] = path
-    return dict(sorted(frames.items()))
+from states import collect_run
 
 
 def main():

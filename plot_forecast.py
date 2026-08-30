@@ -13,16 +13,13 @@ from pathlib import Path
 import numpy as np
 from earthkit.plots import Figure
 
+from states import collect_run, newest_forecast
+
 # Fields stored in Kelvin that read better in Celsius on a map.
 KELVIN_FIELDS = {"2t", "2d", "skt", "stl1", "stl2"} | {f"t_{lev}" for lev in (
     1000, 925, 850, 700, 600, 500, 400, 300, 250, 200, 150, 100, 50, 10)}
 
 
-def newest_forecast(out_dir):
-    files = sorted(out_dir.glob("forecast_*.npz"))
-    if not files:
-        raise SystemExit(f"no forecast_*.npz in {out_dir}; run run_forecast.py first")
-    return files[-1]
 
 
 def main():
@@ -48,8 +45,6 @@ def main():
     unit = ""
     accumulated = ""
     if args.sum_run:
-        from animate_forecast import collect_run
-
         lead = int(re.search(r"\+(\d+)h", path.name).group(1))
         init = date - datetime.timedelta(hours=lead)
         values = np.zeros_like(values)

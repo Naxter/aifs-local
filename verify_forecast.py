@@ -15,7 +15,18 @@ import earthkit.data as ekd
 import numpy as np
 
 from initial_conditions import STANDARD_GRAVITY, regrid_to_n320
-from plot_forecast import newest_forecast
+from states import newest_forecast
+
+# The fields scored throughout the repository, with the factor from the
+# model's own unit to the unit used in every table and figure. One source
+# of truth, so a score never means hPa in one place and Pa in another.
+PANELS = [
+    ("2t", "2 m temperature", 1.0, "K"),
+    ("t_850", "850 hPa temperature", 1.0, "K"),
+    ("msl", "Mean sea-level pressure", 0.01, "hPa"),
+    ("z_500", "500 hPa geopotential", 1.0, "m²/s²"),
+]
+SCALE = {param: (scale, unit) for param, _, scale, unit in PANELS}
 
 
 def fetch_truth(param, date, source):
@@ -54,15 +65,17 @@ def main():
         valid = datetime.datetime.fromisoformat(str(npz["date"]))
         forecast = {p: npz[p] for p in args.params.split(",")}
 
-    print(f"Verifying {path.name} against open data analysis at {valid}\n")
-    print(f"{'param':8s} {'bias':>10s} {'mae':>10s} {'rmse':>10s}")
+    print(f"Verifying {path.name} against open data analysis at {valid}")
+    print("One case only — a single valid time says nothing about average skill.\n")
+    print(f"{'param':8s} {'unit':>6s} {'bias':>10s} {'mae':>10s} {'rmse':>10s}")
     for param, fc in forecast.items():
         truth = fetch_truth(param, valid, args.source)
-        diff = fc.astype(np.float64) - truth
+        scale, unit = SCALE.get(param, (1.0, ""))
+        diff = (fc.astype(np.float64) - truth) * scale
         bias = np.nanmean(diff)
         mae = np.nanmean(np.abs(diff))
         rmse = float(np.sqrt(np.nanmean(diff**2)))
-        print(f"{param:8s} {bias:10.3f} {mae:10.3f} {rmse:10.3f}")
+        print(f"{param:8s} {unit:>6s} {bias:10.3f} {mae:10.3f} {rmse:10.3f}")
 
 
 if __name__ == "__main__":

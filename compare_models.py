@@ -2,9 +2,12 @@
 
 For one valid time, scores three forecast sources against the same open
 data analysis: the local AIFS runs (outputs/), ECMWF's operational IFS
-(the physics model), and ECMWF's operational AIFS. Note the home
-advantage: the analysis is produced by the IFS system, which flatters
-IFS scores slightly.
+(the physics model), and ECMWF's operational AIFS.
+
+Two caveats belong to every number this prints. The analysis is produced
+by the IFS system, which flatters IFS. And this is a single valid time:
+it shows that the local pipeline reproduces the operational one, but it
+is far too little data to rank models by skill.
 """
 
 import argparse
@@ -21,27 +24,16 @@ import numpy as np
 from ecmwf.opendata import Client
 
 from initial_conditions import STANDARD_GRAVITY, regrid_to_n320
-from plot_error_growth import collect_forecasts
-from verify_forecast import fetch_truth
+from plotstyle import SURFACE, TEXT, TEXT_2, style_axis
+from states import collect_forecasts
+from verify_forecast import PANELS, fetch_truth
 
-PANELS = [
-    ("2t", "2 m temperature (K)", 1.0),
-    ("t_850", "850 hPa temperature (K)", 1.0),
-    ("msl", "Mean sea-level pressure (hPa)", 0.01),
-    ("z_500", "500 hPa geopotential (m²/s²)", 1.0),
-]
-
-# Fixed entity -> colour assignment (never re-ordered).
+# Fixed entity -> colour assignment (never re-ordered when a line drops out).
 SOURCES = [
     ("local AIFS", "#2a78d6"),
     ("ECMWF AIFS", "#1baf7a"),
     ("ECMWF IFS", "#eb6834"),
 ]
-
-TEXT = "#0b0b0b"
-TEXT_2 = "#52514e"
-GRID = "#e5e4e0"
-SURFACE = "#fcfcfb"
 
 
 def fetch_operational(model, param, init, lead, source):
@@ -58,7 +50,8 @@ def fetch_operational(model, param, init, lead, source):
     with tempfile.NamedTemporaryFile(suffix=".grib2", delete=False) as tmp:
         client.retrieve(target=tmp.name, **request)
         fields = list(ekd.from_source("file", tmp.name))
-        assert len(fields) == 1, f"expected one field, got {len(fields)}"
+        if len(fields) != 1:
+            raise SystemExit(f"expected one field for {param}, got {len(fields)}")
         values = regrid_to_n320(fields[0].to_numpy())
     Path(tmp.name).unlink()
     if level and name == "z":
@@ -85,11 +78,12 @@ def main():
     if not local:
         raise SystemExit(f"no local forecasts valid at {valid}")
     leads = list(local)
-    print(f"Valid {valid}, leads: {', '.join(f'{h}h' for h in leads)}\n")
+    print(f"Valid {valid}, leads: {', '.join(f'{h}h' for h in leads)}")
+    print("One case — not a skill ranking.\n")
 
     # scores[param][source_name][lead] = rmse
-    scores = {p: {name: {} for name, _ in SOURCES} for p, _, _ in PANELS}
-    for param, _, scale in PANELS:
+    scores = {p: {name: {} for name, _ in SOURCES} for p, _, _, _ in PANELS}
+    for param, _, scale, _ in PANELS:
         truth = fetch_truth(param, valid, args.source)
         for lead in leads:
             init = valid - datetime.timedelta(hours=lead)
@@ -99,36 +93,27 @@ def main():
                 values = fetch_operational(model, param, init, lead, args.source)
                 scores[param][name][lead] = rmse(values, truth) * scale
 
-    for param, title, _ in PANELS:
-        print(title)
+    for param, label, _, unit in PANELS:
+        print(f"{label} ({unit})")
         for name, _ in SOURCES:
             row = "  ".join(f"+{lead}h {scores[param][name][lead]:8.2f}" for lead in leads)
             print(f"  {name:11s} {row}")
 
     fig, axes = plt.subplots(2, 2, figsize=(8, 5.8), dpi=150, facecolor=SURFACE)
-    for ax, (param, title, _) in zip(axes.flat, PANELS):
-        ax.set_facecolor(SURFACE)
+    for ax, (param, label, _, unit) in zip(axes.flat, PANELS):
         for name, color in SOURCES:
             values = [scores[param][name][lead] for lead in leads]
             ax.plot(leads, values, color=color, linewidth=2, marker="o",
                     markersize=5, label=name)
-        ax.set_title(title, fontsize=10, color=TEXT, loc="left")
+        style_axis(ax, f"{label} ({unit})")
         ax.set_ylim(bottom=0)
         ax.set_ylim(top=ax.get_ylim()[1] * 1.15)
         ax.set_xticks(leads)
-        ax.tick_params(colors=TEXT_2, labelsize=8)
-        ax.grid(axis="y", color=GRID, linewidth=0.8)
-        ax.set_axisbelow(True)
-        for side in ("top", "right"):
-            ax.spines[side].set_visible(False)
-        for side in ("left", "bottom"):
-            ax.spines[side].set_color(GRID)
     for ax in axes[1]:
         ax.set_xlabel("lead time (h)", fontsize=9, color=TEXT_2)
     axes[0, 0].legend(fontsize=8, frameon=False, labelcolor=TEXT_2)
-    fig.suptitle(f"RMSE vs the analysis, valid {valid:%Y-%m-%d %H} UTC "
-                 "(IFS analysis — home advantage for IFS)",
-                 fontsize=10, color=TEXT, x=0.02, ha="left")
+    fig.suptitle(f"RMSE vs the analysis, valid {valid:%Y-%m-%d %H} UTC — one case; "
+                 "the analysis is IFS's own", fontsize=10, color=TEXT, x=0.02, ha="left")
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     args.plot.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.plot, facecolor=SURFACE)

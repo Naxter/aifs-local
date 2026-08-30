@@ -16,13 +16,8 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 
-from animate_forecast import collect_run
-
-SERIES = "#2a78d6"
-TEXT = "#0b0b0b"
-TEXT_2 = "#52514e"
-GRID = "#e5e4e0"
-SURFACE = "#fcfcfb"
+from plotstyle import SERIES, SURFACE, TEXT, style_axis
+from states import collect_run
 
 
 def nearest_point(latitudes, longitudes, lat, lon):
@@ -76,20 +71,12 @@ def main():
     fig, axes = plt.subplots(4, 1, figsize=(8, 7.5), dpi=150,
                              sharex=True, facecolor=SURFACE)
     for ax, (title, values, kind) in zip(axes, panels):
-        ax.set_facecolor(SURFACE)
         if kind == "bar":
             ax.bar(times, values, width=0.2, color=SERIES)
             ax.set_ylim(bottom=0)
         else:
             ax.plot(times, values, color=SERIES, linewidth=2)
-        ax.set_title(title, fontsize=9, color=TEXT, loc="left")
-        ax.tick_params(colors=TEXT_2, labelsize=8)
-        ax.grid(axis="y", color=GRID, linewidth=0.8)
-        ax.set_axisbelow(True)
-        for side in ("top", "right"):
-            ax.spines[side].set_visible(False)
-        for side in ("left", "bottom"):
-            ax.spines[side].set_color(GRID)
+        style_axis(ax, title)
     axes[-1].xaxis.set_major_formatter(mdates.DateFormatter("%d %b"))
     fig.suptitle(f"{args.place} — AIFS Single 2.0, init {init:%Y-%m-%d %H} UTC",
                  fontsize=11, color=TEXT, x=0.02, ha="left")

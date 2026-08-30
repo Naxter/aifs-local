@@ -40,7 +40,8 @@ def regrid_to_n320(values):
     Open data longitudes run -180..180; the regrid matrices expect
     0..360, hence the half-width roll.
     """
-    assert values.shape == (721, 1440), f"unexpected grid {values.shape}"
+    if values.shape != (721, 1440):
+        raise ValueError(f"expected a 0.25 deg field of shape (721, 1440), got {values.shape}")
     values = np.roll(values, -values.shape[1] // 2, axis=1)
     return ekr.interpolate(values, {"grid": (0.25, 0.25)}, {"grid": "N320"})
 
@@ -68,31 +69,32 @@ def fetch_lsm(path):
     return path
 
 
+def require(expected, fields, kind):
+    """Fail loudly if open data did not deliver everything the model needs."""
+    missing = set(expected) - set(fields)
+    if missing:
+        raise SystemExit(f"missing {kind} parameters: {sorted(missing)}")
+
+
 def fetch_fields(date, source, data_dir):
     """Download all input fields and apply the checkpoint's transformations."""
     fields = {}
 
     print("Downloading surface fields ...")
     fields.update(get_open_data(date, source, param=PARAM_SFC, levtype="sfc"))
-    missing = set(PARAM_SFC) - set(fields)
-    assert not missing, f"missing surface parameters: {missing}"
+    require(PARAM_SFC, fields, "surface")
 
     print("Downloading wave fields ...")
     fields.update(get_open_data(date, source, param=PARAM_WAVE, stream="wave"))
-    missing = set(PARAM_WAVE) - set(fields)
-    assert not missing, f"missing wave parameters: {missing}"
+    require(PARAM_WAVE, fields, "wave")
 
     print("Downloading soil fields ...")
     soil = get_open_data(date, source, param=PARAM_SOIL, levelist=SOIL_LEVELS)
-    soil_names = [f"{p}_{lev}" for p in PARAM_SOIL for lev in SOIL_LEVELS]
-    missing = set(soil_names) - set(soil)
-    assert not missing, f"missing soil parameters: {missing}"
+    require([f"{p}_{lev}" for p in PARAM_SOIL for lev in SOIL_LEVELS], soil, "soil")
 
     print("Downloading pressure-level fields ...")
     fields.update(get_open_data(date, source, param=PARAM_PL, levelist=LEVELS))
-    pl_names = [f"{p}_{lev}" for p in PARAM_PL for lev in LEVELS]
-    missing = set(pl_names) - set(fields)
-    assert not missing, f"missing pressure-level parameters: {missing}"
+    require([f"{p}_{lev}" for p in PARAM_PL for lev in LEVELS], fields, "pressure-level")
 
     # Mean wave direction is an angle; the model was trained on its
     # sine/cosine components.
