@@ -53,6 +53,22 @@ the shared initialisation and the double regridding; the shape is the
 point. +96 h was out of reach: open data retains only about four days
 (see FRICTION.md).
 
+## AIFS vs. IFS
+
+`compare_models.py` scores the local runs against ECMWF's operational
+IFS (the physics model) and operational AIFS, all against the same
+analysis:
+
+![Model comparison](docs/model-comparison.png)
+
+Two things to see. The local AIFS line hides almost perfectly under
+ECMWF's operational AIFS — the open-data initialisation reproduces the
+official product's skill, which validates this whole pipeline. And the
+ML model beats the physics model on t850, msl and z500 at every lead —
+even though the verifying analysis is produced by the IFS system itself
+— while IFS keeps the edge on 2 m temperature, where its land-surface
+scheme earns its keep.
+
 ## Ten days of weather
 
 `animate_forecast.py` renders a whole run as a GIF — here 2 m
