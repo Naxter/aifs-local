@@ -7,6 +7,7 @@ the point cloud onto a regular grid internally.
 
 import argparse
 import datetime
+import re
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +30,9 @@ def main():
     parser.add_argument("--file", type=Path, help="forecast .npz (default: newest in outputs/)")
     parser.add_argument("--param", default="2t")
     parser.add_argument("--domain", default="Europe")
+    parser.add_argument("--sum-run", action="store_true",
+                        help="sum the field over all steps of the run up to this one "
+                        "(for per-step fields like tp: accumulated precipitation)")
     parser.add_argument("--out-dir", default="outputs", type=Path)
     args = parser.parse_args()
 
@@ -42,7 +46,22 @@ def main():
         values = npz[args.param]
 
     unit = ""
-    if args.param in KELVIN_FIELDS:
+    accumulated = ""
+    if args.sum_run:
+        from animate_forecast import collect_run
+
+        lead = int(re.search(r"\+(\d+)h", path.name).group(1))
+        init = date - datetime.timedelta(hours=lead)
+        values = np.zeros_like(values)
+        for step, file in collect_run(args.out_dir, init).items():
+            if step <= lead:
+                with np.load(file) as npz:
+                    values = values + npz[args.param]
+        accumulated = f"0-{lead}h "
+        if args.param in {"tp", "cp", "sf"}:
+            values = values * 1000
+            unit = " (mm)"
+    elif args.param in KELVIN_FIELDS:
         values = values - 273.15
         unit = " (°C)"
 
@@ -53,10 +72,11 @@ def main():
     subplot.pcolormesh(x=longitudes, y=latitudes, z=values)
     subplot.coastlines()
     subplot.borders()
-    subplot.legend(label=f"{args.param}{unit}")
-    subplot.title(f"AIFS Single 2.0: {args.param} valid {date:%Y-%m-%d %H} UTC")
+    subplot.legend(label=f"{accumulated}{args.param}{unit}")
+    subplot.title(f"AIFS Single 2.0: {accumulated}{args.param} valid {date:%Y-%m-%d %H} UTC")
 
-    out = args.out_dir / f"{args.param}_{args.domain.lower()}_{date:%Y%m%dT%H}.png"
+    suffix = "_sum" if args.sum_run else ""
+    out = args.out_dir / f"{args.param}{suffix}_{args.domain.lower()}_{date:%Y%m%dT%H}.png"
     figure.save(str(out))
     print(f"saved {out}")
 
