@@ -52,6 +52,7 @@ On an RTX 3060 (12 GB) a 6 h step takes ~13 s at ~6 GB peak GPU memory.
 | `animate_forecast.py` | a whole run as a GIF |
 | `lagged_ensemble.py` | ensemble statistics from successive runs |
 | `daily_verification.py` | scheduler-friendly daily run + scoring into scores.csv |
+| `era5_conditions.py` | initial conditions from ERA5 (CDS) for any date back to 1940 |
 | `states.py` | finding forecast states by run or by valid time |
 | `plotstyle.py` | shared figure styling |
 
@@ -145,12 +146,40 @@ numbers above into averaged skill estimates.
 On Windows with WSL, point a Task Scheduler entry at a one-line `.cmd`
 that calls `wsl -d Ubuntu-24.04 -e bash -lc "<the command above>"`.
 
-## Beyond four days (experimental)
+## Case studies from ERA5
 
-`configs/era5-hindcast.yaml` sketches historical case studies — ERA5
-initial conditions via the CDS API, so any past storm can be
-re-forecast. Untested until a (free) CDS API key is configured; see the
-comments in the config.
+Open data only reaches back four days; `era5_conditions.py` fetches
+initial conditions from ERA5 via the CDS API instead — any date back to
+1940. Requires a free CDS account, an accepted ERA5 licence and
+`pip install cdsapi`; then:
+
+```sh
+python era5_conditions.py --date 2021-07-13T00
+python run_forecast.py --state data/state_20210713T00.npz --lead-time 72
+python plot_forecast.py --file outputs/forecast_20210716T00_+072h.npz --param tp --sum-run
+```
+
+That date is the day before the July 2021 Ahr valley flood:
+
+![Ahr flood hindcast](docs/ahr-2021.png)
+
+Verified against ERA5's own precipitation for the event's 24 hours
+(box 49.5–51.5°N, 5–8.5°E; ERA5 truth: box max 100.5 mm, Ahrweiler
+grid point 68.7 mm):
+
+| init | lead to event | box max | Ahrweiler point |
+|---|---|---|---|
+| 14 Jul 00 UTC | 6–30 h | 90.8 mm | 53.9 mm |
+| 13 Jul 00 UTC | 30–54 h | 67.2 mm | 56.4 mm |
+
+Synoptic skill is unimpaired: +24 h z500 RMSE vs the ERA5 analysis is
+37 m²/s², the same band as the operational-window runs. Caveats that
+belong to these numbers: ERA5 has no wave-period-band fields, so
+`era5_conditions.py` zeroes those six inputs (measured cost on +24 h
+2t: 0.13 K rms; wave outputs untrustworthy for the first day or two),
+grid-scale values are not point observations (the real event exceeded
+150 mm locally), and verifying an ERA5-initialised forecast against
+ERA5 shares the analysis's own view of the event.
 
 See NOTES.md for how the pieces fit together and FRICTION.md for the
 sharp edges hit along the way.

@@ -174,6 +174,39 @@ of comparable skill or lead-dependent weights. Spread grew with the
 error (0.22 K mean 2t spread vs 0.74-1.19 K member RMSEs), which is the
 signal real ensemble systems calibrate against.
 
+## Hindcasting from ERA5
+
+Initialising the model from ERA5 instead of open data works — with
+three lessons attached.
+
+First, the missing inputs: ERA5 contains no wave-period-band heights
+(h1012..h2530), anywhere — checked in the CDS forms and the ERA5
+documentation's 50-parameter wave table. Zeroing them costs a measured
+0.13 K rms on +24 h 2 m temperature (locally up to 1.6 K) and makes the
+wave outputs untrustworthy for a day or two; the atmosphere otherwise
+keeps full skill (+24 h z500 RMSE vs the analysis: 37 m²/s², the same
+band as operational-window runs). Others hit the ERA5-initialisation
+wall before (anemoi-inference#278, closed unresolved; a related
+soil-representation discussion on the aifs-single-1.0 Hugging Face
+page) — the band gap and its measured cost were the missing pieces.
+
+Second, the trap that ate an afternoon: the CDS GRIBs' arrays disagree
+with their own longitude metadata (details in FRICTION.md), which
+silently rotated the planet by 180°. The rotated states produced
+plausible-looking forecasts — sane ranges, a realistic storm track,
+normal global-mean precipitation — because the model was simply
+simulating a self-consistent wrong Earth. Geographic correctness cannot
+be eyeballed and cannot be checked against data that went through the
+same code path; era5_conditions.py now validates every state's land-sea
+mask against the checkpoint's own lsm.grib (an independently oriented
+reference) and refuses below 99% agreement.
+
+Third, the payoff: initialised the day before the July 2021 Ahr valley
+flood, the model puts 90 mm of event rain where ERA5's own analysis has
+100 mm, peak timing correct (see README). Grid-scale, not point-scale —
+but from a 12 GB GPU and a reanalysis that did not exist as an input
+option for this checkpoint.
+
 ## Where image/tensor intuitions break
 
 Running list:
