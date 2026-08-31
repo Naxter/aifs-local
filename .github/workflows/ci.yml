@@ -16,6 +16,16 @@ jobs:
       - run: pip install ruff==0.12.11
       - run: ruff check .
 
+  cli-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: aifs-local --help
+
   plugin-test:
     runs-on: ubuntu-latest
     steps:

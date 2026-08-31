@@ -1,0 +1,25 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61" ]
+
+[project]
+name = "aifs-local"
+version = "0.2.0"
+description = "Run ECMWF's AIFS Single 2.0 weather model on a consumer GPU, end to end"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+  { name = "Tobias Moers", email = "t.moers@gmx.net" },
+]
+requires-python = ">=3.11"
+# No dependencies on purpose: the runtime environment is pinned by
+# requirements.txt to match the aifs-single-2.0 checkpoint exactly, and
+# duplicating those pins here would invite drift. Install the
+# environment first, then `pip install -e .` for the CLI.
+dependencies = [ ]
+
+[project.scripts]
+aifs-local = "aifs_local.cli:main"
+
+[tool.setuptools]
+packages = [ "aifs_local" ]
