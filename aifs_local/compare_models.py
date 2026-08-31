@@ -23,10 +23,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ecmwf.opendata import Client
 
-from initial_conditions import STANDARD_GRAVITY, regrid_to_n320
-from plotstyle import SURFACE, TEXT, TEXT_2, style_axis
-from states import collect_forecasts
-from verify_forecast import PANELS, fetch_truth
+from aifs_local.initial_conditions import STANDARD_GRAVITY, regrid_to_n320
+from aifs_local.plotstyle import SURFACE, TEXT, TEXT_2, style_axis
+from aifs_local.states import collect_forecasts
+from aifs_local.verify_forecast import PANELS, fetch_truth
 
 # Fixed entity -> colour assignment (never re-ordered when a line drops out).
 SOURCES = [

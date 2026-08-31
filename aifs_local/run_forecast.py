@@ -76,7 +76,7 @@ def main():
     if args.date:
         import earthkit.data as ekd
 
-        import initial_conditions as ic
+        from aifs_local import initial_conditions as ic
 
         ekd.config.set({"cache-policy": "user"})
         date = ic.resolve_date(args.date, args.source)

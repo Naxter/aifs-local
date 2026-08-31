@@ -20,9 +20,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from plotstyle import SERIES, SURFACE, TEXT, TEXT_2, style_axis
-from states import collect_forecasts
-from verify_forecast import PANELS, fetch_truth
+from aifs_local.plotstyle import SERIES, SURFACE, TEXT, TEXT_2, style_axis
+from aifs_local.states import collect_forecasts
+from aifs_local.verify_forecast import PANELS, fetch_truth
 
 
 def main():

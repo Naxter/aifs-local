@@ -13,8 +13,8 @@ from pathlib import Path
 import earthkit.data as ekd
 import numpy as np
 
-from states import collect_forecasts
-from verify_forecast import fetch_truth
+from aifs_local.states import collect_forecasts
+from aifs_local.verify_forecast import fetch_truth
 
 
 def main():

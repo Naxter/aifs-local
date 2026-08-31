@@ -16,8 +16,8 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 
-from plotstyle import SERIES, SURFACE, TEXT, style_axis
-from states import collect_run
+from aifs_local.plotstyle import SERIES, SURFACE, TEXT, style_axis
+from aifs_local.states import collect_run
 
 
 def nearest_point(latitudes, longitudes, lat, lon):

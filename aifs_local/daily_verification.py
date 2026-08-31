@@ -25,8 +25,8 @@ import earthkit.data as ekd
 import numpy as np
 from ecmwf.opendata import Client
 
-from states import parse
-from verify_forecast import fetch_truth
+from aifs_local.states import parse
+from aifs_local.verify_forecast import fetch_truth
 
 PARAMS = ["2t", "t_850", "msl", "z_500"]
 SCORES = Path("scores.csv")
@@ -59,7 +59,7 @@ def main():
         print(f"forecast for {latest} already exists, skipping run")
     else:
         print(f"running 24 h forecast from {latest}")
-        subprocess.run([sys.executable, "run_forecast.py",
+        subprocess.run([sys.executable, "-m", "aifs_local.run_forecast",
                         "--date", latest.isoformat(), "--lead-time", "24"], check=True)
 
     done = existing_rows()

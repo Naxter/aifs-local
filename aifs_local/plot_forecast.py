@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from earthkit.plots import Figure
 
-from states import collect_run, newest_forecast
+from aifs_local.states import collect_run, newest_forecast
 
 # Fields stored in Kelvin that read better in Celsius on a map.
 KELVIN_FIELDS = {"2t", "2d", "skt", "stl1", "stl2"} | {f"t_{lev}" for lev in (

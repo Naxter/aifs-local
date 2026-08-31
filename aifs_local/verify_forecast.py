@@ -14,8 +14,8 @@ from pathlib import Path
 import earthkit.data as ekd
 import numpy as np
 
-from initial_conditions import STANDARD_GRAVITY, regrid_to_n320
-from states import newest_forecast
+from aifs_local.initial_conditions import STANDARD_GRAVITY, regrid_to_n320
+from aifs_local.states import newest_forecast
 
 # The fields scored throughout the repository, with the factor from the
 # model's own unit to the unit used in every table and figure. One source

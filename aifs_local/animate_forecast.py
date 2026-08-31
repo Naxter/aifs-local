@@ -18,7 +18,7 @@ import matplotlib.tri as tri
 import numpy as np
 from matplotlib.animation import FuncAnimation, PillowWriter
 
-from states import collect_run
+from aifs_local.states import collect_run
 
 
 def main():

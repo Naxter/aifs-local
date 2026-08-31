@@ -23,7 +23,7 @@ from pathlib import Path
 import earthkit.data as ekd
 import numpy as np
 
-from initial_conditions import (
+from aifs_local.initial_conditions import (
     LEVELS,
     fetch_lsm,
     regrid_to_n320,
