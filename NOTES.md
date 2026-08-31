@@ -139,7 +139,7 @@ checkpoint was trained with, needs the flash-attn CUDA package) and
 read from the model config stored inside the checkpoint
 (config/model/processor/attention_implementation), and anemoi-inference's
 `patch_metadata` runner argument can override it without touching the
-file — that is what `run_forecast.py --attention sdpa` does.
+file — that is what `aifs-local run --attention sdpa` does.
 
 The processor itself (from the same metadata): a 16-layer transformer,
 16 heads, GELU, sliding-window attention with window 1120 — attention is
@@ -161,7 +161,7 @@ precipitation rate), instead of growing with lead time. GRIB convention
 however is accumulation from forecast start, which is exactly what the
 `accumulate_from_start_of_forecast` post-processor in the model card's
 inference.yaml exists to produce. Working with raw states means summing
-steps yourself (`plot_forecast.py --sum-run`).
+steps yourself (`aifs-local plot --sum-run`).
 
 ## The lagged ensemble lesson
 
@@ -197,7 +197,7 @@ plausible-looking forecasts — sane ranges, a realistic storm track,
 normal global-mean precipitation — because the model was simply
 simulating a self-consistent wrong Earth. Geographic correctness cannot
 be eyeballed and cannot be checked against data that went through the
-same code path; era5_conditions.py now validates every state's land-sea
+same code path; the ERA5 fetcher now validates every state's land-sea
 mask against the checkpoint's own lsm.grib (an independently oriented
 reference) and refuses below 99% agreement.
 

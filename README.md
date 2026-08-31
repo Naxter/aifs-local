@@ -20,19 +20,19 @@ One command from date to forecast (first run downloads the ~1 GB
 checkpoint from Hugging Face):
 
 ```sh
-python run_forecast.py --date latest --lead-time 24
+aifs-local run --date latest --lead-time 24
 ```
 
 Or step by step:
 
 ```sh
-python initial_conditions.py --date 2026-08-30T06
-python run_forecast.py --lead-time 12
-python plot_forecast.py --param 2t --domain Europe
+aifs-local fetch --date 2026-08-30T06
+aifs-local run --lead-time 12
+aifs-local plot --param 2t --domain Europe
 ```
 
 Forecast states are written to `outputs/` as compressed .npz (values,
-latitudes, longitudes per 6 h step). Useful flags on `run_forecast.py`:
+latitudes, longitudes per 6 h step). Useful flags on `aifs-local run`:
 `--device cpu`, `--attention sdpa` (runs without flash-attn),
 `--precision 16`, `--num-chunks N` for tighter memory.
 
@@ -40,27 +40,25 @@ On an RTX 3060 (12 GB) a 6 h step takes ~13 s at ~6 GB peak GPU memory.
 
 ## Toolbox
 
-| script | purpose |
+| command | purpose |
 |---|---|
-| `initial_conditions.py` | download and prepare an input state from open data |
-| `run_forecast.py` | run the model (`--raw-dir` also writes replayable states) |
-| `plot_forecast.py` | map any field (`--sum-run` for accumulated precipitation) |
-| `verify_forecast.py` | score one forecast against the analysis |
-| `plot_error_growth.py` | RMSE vs lead time across initialisations |
-| `compare_models.py` | local AIFS vs operational IFS and AIFS |
-| `meteogram.py` | one location's forecast as time-series panels |
-| `animate_forecast.py` | a whole run as a GIF |
-| `lagged_ensemble.py` | ensemble statistics from successive runs |
-| `daily_verification.py` | scheduler-friendly daily run + scoring into scores.csv |
-| `era5_conditions.py` | initial conditions from ERA5 (CDS) for any date back to 1940 |
-| `states.py` | finding forecast states by run or by valid time |
-| `plotstyle.py` | shared figure styling |
+| `aifs-local fetch` | download and prepare an input state from open data |
+| `aifs-local run` | run the model (`--raw-dir` also writes replayable states) |
+| `aifs-local plot` | map any field (`--sum-run` for accumulated precipitation) |
+| `aifs-local verify` | score one forecast against the analysis |
+| `aifs-local growth` | RMSE vs lead time across initialisations |
+| `aifs-local compare` | local AIFS vs operational IFS and AIFS |
+| `aifs-local meteogram` | one location's forecast as time-series panels |
+| `aifs-local animate` | a whole run as a GIF |
+| `aifs-local ensemble` | ensemble statistics from successive runs |
+| `aifs-local daily` | scheduler-friendly daily run + scoring into scores.csv |
+| `aifs-local era5` | initial conditions from ERA5 (CDS) for any date back to 1940 |
 
 ## Verification
 
-`verify_forecast.py` scores one forecast against the analysis at its
+`aifs-local verify` scores one forecast against the analysis at its
 valid time (open data, step 0 of that cycle; bias, MAE, RMSE);
-`plot_error_growth.py` does it across initialisations. Hindcasts
+`aifs-local growth` does it across initialisations. Hindcasts
 initialised 1–3 days before 2026-08-30 06 UTC, verified globally on
 N320 (RMSE):
 
@@ -74,7 +72,7 @@ N320 (RMSE):
 
 **One case, not a skill assessment.** Three forecasts verified at a
 single valid time show the shape of error growth; averaged skill needs
-weeks of samples, which is what `daily_verification.py` accumulates in
+weeks of samples, which is what `aifs-local daily` accumulates in
 `scores.csv`. Two further caveats: forecast and analysis travel the same
 0.25° → N320 regridding path, so that error partly cancels and the
 numbers come out slightly optimistic; and +96 h was out of reach because
@@ -82,7 +80,7 @@ open data retains only about four days (see FRICTION.md).
 
 ## AIFS vs. IFS
 
-`compare_models.py` scores the local runs against ECMWF's operational
+`aifs-local compare` scores the local runs against ECMWF's operational
 IFS (the physics model) and operational AIFS, all against the same
 analysis:
 
@@ -101,14 +99,14 @@ place to look for the real comparison.
 
 ## Ten days of weather
 
-`animate_forecast.py` renders a whole run as a GIF — here 2 m
+`aifs-local animate` renders a whole run as a GIF — here 2 m
 temperature, initialised 2026-08-30 06 UTC, one frame per 12 h:
 
 ![10-day 2t animation](docs/2t-10day.gif)
 
 ## Point forecast
 
-`meteogram.py` extracts the nearest grid point and draws the classic
+`aifs-local meteogram` extracts the nearest grid point and draws the classic
 meteogram panels (default location: Bonn):
 
 ![Meteogram](docs/meteogram.png)
@@ -117,12 +115,12 @@ meteogram panels (default location: Bonn):
 
 [plugin/](plugin/) contains `anemoi-inference-input-raw-plugin`, an
 input plugin that reads the .npz states written by anemoi-inference's
-built-in `raw` output (or by `run_forecast.py --raw-dir`), so forecasts
+built-in `raw` output (or by `aifs-local run --raw-dir`), so forecasts
 can be replayed or continued without re-fetching source data:
 
 ```sh
 pip install -e plugin
-python run_forecast.py --lead-time 12 --raw-dir data/raw
+aifs-local run --lead-time 12 --raw-dir data/raw
 anemoi-inference run configs/replay-from-raw.yaml date=2026-08-30T12:00:00
 ```
 
@@ -132,7 +130,7 @@ card), so the output opens in any meteorology tool.
 
 ## Standing verification
 
-`daily_verification.py` is built for a scheduler: it runs the latest
+`aifs-local daily` is built for a scheduler: it runs the latest
 cycle's 24 h forecast and appends scores for every matured forecast to
 `scores.csv` (in the model's own units, so msl is in Pa there). Re-runs
 skip rows that already exist. A few weeks of rows turn the single-case
@@ -140,7 +138,7 @@ numbers above into averaged skill estimates.
 
 ```sh
 # crontab -e — daily at 16:00 local time
-0 16 * * * cd /path/to/aifs-local && .venv/bin/python daily_verification.py >> daily.log 2>&1
+0 16 * * * cd /path/to/aifs-local && .venv/bin/aifs-local daily >> daily.log 2>&1
 ```
 
 On Windows with WSL, point a Task Scheduler entry at a one-line `.cmd`
@@ -148,15 +146,15 @@ that calls `wsl -d Ubuntu-24.04 -e bash -lc "<the command above>"`.
 
 ## Case studies from ERA5
 
-Open data only reaches back four days; `era5_conditions.py` fetches
+Open data only reaches back four days; `aifs-local era5` fetches
 initial conditions from ERA5 via the CDS API instead — any date back to
 1940. Requires a free CDS account, an accepted ERA5 licence and
 `pip install cdsapi`; then:
 
 ```sh
-python era5_conditions.py --date 2021-07-13T00
-python run_forecast.py --state data/state_20210713T00.npz --lead-time 72
-python plot_forecast.py --file outputs/forecast_20210716T00_+072h.npz --param tp --sum-run
+aifs-local era5 --date 2021-07-13T00
+aifs-local run --state data/state_20210713T00.npz --lead-time 72
+aifs-local plot --file outputs/forecast_20210716T00_+072h.npz --param tp --sum-run
 ```
 
 That date is the day before the July 2021 Ahr valley flood:
@@ -175,7 +173,7 @@ grid point 68.7 mm):
 Synoptic skill is unimpaired: +24 h z500 RMSE vs the ERA5 analysis is
 37 m²/s², the same band as the operational-window runs. Caveats that
 belong to these numbers: ERA5 has no wave-period-band fields, so
-`era5_conditions.py` zeroes those six inputs (measured cost on +24 h
+`aifs-local era5` zeroes those six inputs (measured cost on +24 h
 2t: 0.13 K rms; wave outputs untrustworthy for the first day or two),
 grid-scale values are not point observations (the real event exceeded
 150 mm locally), and verifying an ERA5-initialised forecast against
@@ -196,6 +194,7 @@ sharp edges hit along the way.
 python3.12 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 pip install --no-deps "flash-attn @ https://github.com/cathalobrien/get-flash-attn/releases/download/v0.1-alpha/flash_attn-2.8.3+cu12torch2.7cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
 ```
 
