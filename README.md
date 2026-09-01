@@ -172,12 +172,28 @@ grid point 68.7 mm):
 
 Synoptic skill is unimpaired: +24 h z500 RMSE vs the ERA5 analysis is
 37 m²/s², the same band as the operational-window runs. Caveats that
-belong to these numbers: ERA5 has no wave-period-band fields, so
-`aifs-local era5` zeroes those six inputs (measured cost on +24 h
-2t: 0.13 K rms; wave outputs untrustworthy for the first day or two),
-grid-scale values are not point observations (the real event exceeded
-150 mm locally), and verifying an ERA5-initialised forecast against
-ERA5 shares the analysis's own view of the event.
+belong to these numbers: grid-scale values are not point observations
+(the real event exceeded 150 mm locally), and verifying an
+ERA5-initialised forecast against ERA5 shares the analysis's own view
+of the event.
+
+One input compromise is measured rather than assumed. ERA5 has no
+wave-period-band fields (h1012..h2530), so by default `aifs-local era5`
+zeroes those six inputs — costing 0.05–0.13 K rms on +24 h 2 m
+temperature and making the wave outputs untrustworthy for a day or two,
+while leaving the Ahr precipitation untouched. The rigorous option
+reconstructs them from ERA5's archived 2D wave spectra (param 140251,
+MARS/tape via the CDS API):
+
+```sh
+aifs-local era5 --date 2021-07-14T00 --spectra-grib data/era5/spectra.grib
+```
+
+The integration is self-checking: reconstructed significant wave height
+must match ERA5's own swh field (1.5% mean relative error measured), or
+the state is refused. With proper bands the wave forecasts change
+substantially (swh rms 0.18 m at +24 h vs the zeroed run); the
+atmosphere barely notices.
 
 See NOTES.md for how the pieces fit together and FRICTION.md for the
 sharp edges hit along the way.

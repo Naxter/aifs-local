@@ -190,6 +190,17 @@ wall before (anemoi-inference#278, closed unresolved; a related
 soil-representation discussion on the aifs-single-1.0 Hugging Face
 page) — the band gap and its measured cost were the missing pieces.
 
+The bands can be done properly: ERA5 archives the full 2D wave spectrum
+(24 directions x 30 frequencies, log10-encoded, MARS/tape only), and
+integrating it over each band's frequency window reproduces the missing
+fields — spectra.py implements this with a built-in check that the
+whole-spectrum integral matches ERA5's own swh (1.5% mean error). The
+punchline is a lesson in itself: proper bands change the wave forecasts
+substantially (swh rms 0.18 m at +24 h) and the atmosphere almost not
+at all (2t rms 0.06 K); the Ahr precipitation is identical to the
+decimal. For atmospheric case studies the cheap substitution was fine —
+but now that is measured, not hoped.
+
 Second, the trap that ate an afternoon: open data GRIBs start their
 longitudes at -180°, ERA5-via-CDS GRIBs at 0° — both headers truthful —
 and a half-width roll for the former was hiding inside this repo's
