@@ -115,7 +115,7 @@ def read_fields(path, dates, wave=False):
     return {name: np.stack([per_date[i][name] for i in range(len(dates))]) for name in names}
 
 
-def fetch_fields(date, data_dir):
+def fetch_fields(date, data_dir, spectra_grib=None):
     dates = [date - datetime.timedelta(hours=6), date]
     era5_dir = data_dir / "era5"
     stamp = f"{date:%Y%m%dT%H}"
@@ -140,11 +140,23 @@ def fetch_fields(date, data_dir):
     fields.pop("q_10", None)
     fields.pop("q_50", None)
 
-    # ERA5 has no wave-period-band heights: zero over sea (where the wave
-    # model is defined), NaN over land like every other wave field.
+    # ERA5 has no wave-period-band heights. Default: zero over sea (where
+    # the wave model is defined), NaN over land like every other wave
+    # field. With --spectra-grib they are integrated properly from the
+    # archived 2D spectra instead.
     sea = fields["swh"]
-    for name in MISSING_BANDS:
-        fields[name] = np.where(np.isnan(sea), np.nan, 0.0)
+    if spectra_grib:
+        from aifs_local.spectra import load_bands
+
+        wave_grid_bands = load_bands(spectra_grib, wave, dates)
+        for name in MISSING_BANDS:
+            n320 = np.stack([regrid_to_n320(upsample_wave(
+                np.nan_to_num(wave_grid_bands[name][i])))
+                for i in range(len(dates))])
+            fields[name] = np.where(np.isnan(sea), np.nan, n320)
+    else:
+        for name in MISSING_BANDS:
+            fields[name] = np.where(np.isnan(sea), np.nan, 0.0)
 
     lsm_path = fetch_lsm(data_dir / "lsm.grib")
     reference = ekd.from_source("file", str(lsm_path))[0].to_numpy(flatten=True)
@@ -177,15 +189,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--date", required=True, help="initial time, ISO format e.g. 2021-07-13T00")
     parser.add_argument("--data-dir", default="data", type=Path)
+    parser.add_argument("--spectra-grib", type=Path,
+                        help="2D wave spectra GRIB (param 140251) covering both input "
+                        "times; reconstructs the wave-band heights instead of zeroing them")
     args = parser.parse_args()
 
     ekd.config.set({"cache-policy": "user"})
     date = datetime.datetime.fromisoformat(args.date)
     print(f"ERA5 initial conditions for {date}")
 
-    fields = fetch_fields(date, args.data_dir)
+    fields = fetch_fields(date, args.data_dir, spectra_grib=args.spectra_grib)
     summarise(fields)
-    save_state(fields, date, args.data_dir / f"state_{date:%Y%m%dT%H}.npz")
+    suffix = "_spectra" if args.spectra_grib else ""
+    save_state(fields, date, args.data_dir / f"state_{date:%Y%m%dT%H}{suffix}.npz")
 
 
 if __name__ == "__main__":
