@@ -1,32 +1,36 @@
 # Friction log
 
-## 2026-08-31 — ERA5 via CDS: the array contradicts its own GRIB metadata
+## 2026-08-31 — The 180° planet: not CDS's bug, not earthkit's — mine
 
-The GRIB1 fields CDS serves for ERA5 declare
-`longitudeOfFirstGridPointInDegrees = 0`, but the arrays earthkit-data
-returns behave as if longitudes started at -180: feeding them to the
-0.25°→N320 regrid without a half-width roll produces a planet shifted
-by 180° in longitude. Measured with the land-sea mask against the
-checkpoint's own lsm.grib: 66.8% land/sea agreement without the roll,
-99.6% with it (the open data path, which rolls unconditionally, scores
-99.6%).
+Initialising from ERA5 produced states rotated 180° in longitude, and
+the model forecast them without complaint — sane ranges, a
+realistic-looking storm track, normal global-mean precipitation. A
+self-consistently wrong planet looks exactly like a right one. An
+entire hindcast case study was analysed before the geography was
+questioned.
 
-Two lessons paid for the hard way. First: the shifted state produced a
-*plausible-looking* forecast — sane value ranges, a realistic-looking
-storm track, normal global-mean precipitation — because the model was
-handed a self-consistently rotated planet. Nothing failed. An entire
-hindcast case study was analysed before the geography was questioned.
-Second: the "integrity check" that was supposed to catch exactly this
-compared the state against a freshly downloaded field *pushed through
-the same conversion function* — bit-exact agreement, zero information.
-Orientation checks must use an independently oriented reference;
-`era5_conditions.py` now refuses to emit a state whose land-sea mask
-agrees with the checkpoint's below 99%.
+The first diagnosis blamed a metadata/array mismatch in the CDS GRIBs.
+An eccodes-level repro the next day disproved that: raw
+`codes_get_values` matches the header exactly (Europe where the header
+says), and earthkit returns storage order untouched. The truth: open
+data GRIBs start at -180° (header truthfully says 180.0), ERA5-via-CDS
+GRIBs start at 0° (header truthfully says 0.0) — and this repo's regrid
+helper had the open-data half-width roll *hidden inside it*, so the
+ERA5 path rolled an already-0-first array. The interim "fix" added a
+second roll that cancelled the first: correct results for the wrong
+reason. Now `to_zero_first()` normalises by the header (which both
+products honour) and the regrid is pure.
 
-Not yet isolated whether the mismatch lives in CDS's GRIB1 encoding or
-earthkit-data's decoding; needs a minimal eccodes-level reproduction.
-Searched ecmwf/earthkit-data issues (2026-08-31): not reported. Issue
-candidate once the repro pins the layer.
+Three lessons, all paid for. Orientation checks need an independently
+oriented reference — the first "integrity check" pushed a fresh
+download through the same conversion function and proved nothing
+(`era5_conditions` now refuses any state whose land-sea mask agrees
+with the checkpoint's below 99%). A workaround that fixes symptoms
+without a mechanism ("roll unconditionally, measured better") survives
+until the next data source. And accusations against upstream need a
+minimal repro first — this one nearly became a bogus bug report against
+CDS; the repro retracted it before filing. No upstream issue: both
+products' headers are correct.
 
 Every point where docs were wrong or missing, an error was unhelpful, or a
 constraint was undocumented. Kept as a candidate list for upstream issues

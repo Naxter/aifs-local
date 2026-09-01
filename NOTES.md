@@ -190,9 +190,11 @@ wall before (anemoi-inference#278, closed unresolved; a related
 soil-representation discussion on the aifs-single-1.0 Hugging Face
 page) — the band gap and its measured cost were the missing pieces.
 
-Second, the trap that ate an afternoon: the CDS GRIBs' arrays disagree
-with their own longitude metadata (details in FRICTION.md), which
-silently rotated the planet by 180°. The rotated states produced
+Second, the trap that ate an afternoon: open data GRIBs start their
+longitudes at -180°, ERA5-via-CDS GRIBs at 0° — both headers truthful —
+and a half-width roll for the former was hiding inside this repo's
+regrid helper, which silently rotated the ERA5 planet by 180° (full
+post-mortem in FRICTION.md). The rotated states produced
 plausible-looking forecasts — sane ranges, a realistic storm track,
 normal global-mean precipitation — because the model was simply
 simulating a self-consistent wrong Earth. Geographic correctness cannot
