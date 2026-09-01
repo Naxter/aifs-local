@@ -65,3 +65,39 @@ def test_nearest_point_handles_date_line_wrap():
     lats = np.array([0.0, 0.0])
     lons = np.array([359.75, 180.0])
     assert nearest_point(lats, lons, 0.0, -0.1) == 0
+
+
+class _FakeField:
+    def __init__(self, values, first_lon):
+        self._values = values
+        self._first = first_lon
+
+    def to_numpy(self):
+        return self._values
+
+    def metadata(self, key):
+        assert key == "longitudeOfFirstGridPointInDegrees"
+        return self._first
+
+
+def test_to_zero_first_keeps_zero_origin():
+    from aifs_local.initial_conditions import to_zero_first
+
+    values = np.arange(8, dtype=float).reshape(2, 4)
+    out = to_zero_first(_FakeField(values, 0.0))
+    assert np.array_equal(out, values)
+
+
+def test_to_zero_first_rolls_180_origin():
+    from aifs_local.initial_conditions import to_zero_first
+
+    values = np.arange(8, dtype=float).reshape(2, 4)
+    out = to_zero_first(_FakeField(values, 180.0))
+    assert np.array_equal(out[0], [2.0, 3.0, 0.0, 1.0])
+
+
+def test_to_zero_first_rejects_odd_origins():
+    from aifs_local.initial_conditions import to_zero_first
+
+    with pytest.raises(ValueError):
+        to_zero_first(_FakeField(np.zeros((2, 4)), 90.0))

@@ -7,8 +7,9 @@ Requires a CDS account, an accepted ERA5 licence and `pip install cdsapi`.
 ERA5 differences handled here:
 
 - atmosphere arrives on 0.25 deg, ocean waves on 0.5 deg (own regrid);
-- longitudes already run 0..360 (checked, not assumed — open data needs
-  a half-width roll, ERA5 must not get one);
+- longitudes start at 0° here but at -180° in open data — both headers
+  are truthful, and to_zero_first() normalises by the header; the
+  geography guard below catches any orientation mistake regardless;
 - z on pressure levels is served directly (no gh conversion);
 - the six wave-period-band heights (h1012..h2530) do not exist anywhere
   in ERA5. They are set to zero over sea. Measured cost of that
@@ -29,6 +30,7 @@ from aifs_local.initial_conditions import (
     regrid_to_n320,
     save_state,
     summarise,
+    to_zero_first,
 )
 
 # CDS request names by dataset; fields are read back via GRIB shortNames,
@@ -91,18 +93,6 @@ def fetch_era5(dataset, variables, dates, target, levels=None):
     cdsapi.Client().retrieve(dataset, request, str(target))
 
 
-def to_0360(field):
-    """Regrid-ready values: unconditional half-width longitude roll.
-
-    The CDS ERA5 GRIBs claim longitudeOfFirstGridPointInDegrees = 0, but
-    the arrays earthkit returns behave like -180-first: only with this
-    roll does the regridded land-sea mask agree with the checkpoint's
-    (99.6% vs 66.8% without). Same roll as the open data path; do not
-    make it conditional on metadata again — verify_geography() below
-    guards the result either way.
-    """
-    values = field.to_numpy()
-    return np.roll(values, -values.shape[1] // 2, axis=1)
 
 
 def read_fields(path, dates, wave=False):
@@ -113,7 +103,7 @@ def read_fields(path, dates, wave=False):
             f"{f.metadata('validityDate')}{f.metadata('validityTime'):04d}", "%Y%m%d%H%M")
         if valid not in dates:
             continue
-        values = to_0360(f)
+        values = to_zero_first(f)
         if wave:
             values = upsample_wave(values)
         values = regrid_to_n320(values)

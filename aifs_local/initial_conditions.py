@@ -34,15 +34,26 @@ LSM_URL = "https://huggingface.co/ecmwf/aifs-single-2.0/resolve/main/lsm.grib"
 STANDARD_GRAVITY = 9.80665
 
 
-def regrid_to_n320(values):
-    """Interpolate a 0.25 deg lat/lon field to the model's N320 grid.
+def to_zero_first(field):
+    """A field's values with longitudes starting at 0°, per its own header.
 
-    Open data longitudes run -180..180; the regrid matrices expect
-    0..360, hence the half-width roll.
+    Open data GRIBs start at 180° (i.e. -180), ERA5-via-CDS GRIBs at 0° —
+    both headers are truthful. Everything downstream (the regrid, and the
+    N320 ordering the checkpoint uses) expects 0-first columns.
     """
+    values = field.to_numpy()
+    first = float(field.metadata("longitudeOfFirstGridPointInDegrees"))
+    if abs(first - 180.0) < 1 or abs(first + 180.0) < 1:
+        values = np.roll(values, -values.shape[1] // 2, axis=1)
+    elif abs(first) > 1:
+        raise ValueError(f"unexpected first longitude {first}")
+    return values
+
+
+def regrid_to_n320(values):
+    """Interpolate a 0.25 deg lat/lon field (0-first longitudes) to N320."""
     if values.shape != (721, 1440):
         raise ValueError(f"expected a 0.25 deg field of shape (721, 1440), got {values.shape}")
-    values = np.roll(values, -values.shape[1] // 2, axis=1)
     return ekr.interpolate(values, {"grid": (0.25, 0.25)}, {"grid": "N320"})
 
 
@@ -55,7 +66,7 @@ def get_open_data(date, source, param, levelist=(), **kwargs):
             source=source, **kwargs,
         )
         for f in data:
-            values = regrid_to_n320(f.to_numpy())
+            values = regrid_to_n320(to_zero_first(f))
             name = f"{f.metadata('param')}_{f.metadata('levelist')}" if levelist else f.metadata("param")
             fields[name].append(values)
 
