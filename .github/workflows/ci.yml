@@ -20,19 +20,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -e .
       - run: aifs-local --help
 
-  plugin-test:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: pip install anemoi-inference==0.8.3 pytest==8.4.1
-      - run: pip install -e plugin
-      - run: pytest plugin/tests/
+      - run: pip install anemoi-inference==0.8.3 ecmwf-opendata==0.3.29 earthkit-regrid==0.5.1 matplotlib==3.11.1 pytest==8.4.1
+      - run: pip install -e . -e plugin
+      - run: pytest tests/ plugin/tests/
